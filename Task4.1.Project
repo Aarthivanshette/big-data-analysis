@@ -1,0 +1,72 @@
+# 1. Importing Required Libraries
+import pandas as pd
+import numpy as np
+from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, accuracy_score
+
+# 2. Data Preparation
+# Sample data: Replace this with your own dataset (tweets, reviews, etc.)
+data = {
+    'text': [
+        "I love this product, it's amazing!",
+        "Worst purchase I have ever made.",
+        "The product is okay, nothing special.",
+        "Great quality, I will buy again.",
+        "Terrible, would not recommend it to anyone.",
+        "Absolutely fantastic! Exceeded my expectations."
+    ],
+    'sentiment': ['positive', 'negative', 'neutral', 'positive', 'negative', 'positive']  # Manually labeled sentiments
+}
+
+# Convert to DataFrame
+df = pd.DataFrame(data)
+
+# Show first few rows of the data
+df.head()
+
+# 3. Data Preprocessing
+# Check for missing values
+print(f"Missing Values: \n{df.isnull().sum()}")
+
+# If needed, clean or process data (e.g., remove special characters, lowercasing)
+df['cleaned_text'] = df['text'].str.lower().str.replace('[^\w\s]', '', regex=True)
+
+# 4. Sentiment Analysis using TextBlob
+def textblob_sentiment_analysis(text):
+    blob = TextBlob(text)
+    return 'positive' if blob.sentiment.polarity > 0 else 'negative' if blob.sentiment.polarity < 0 else 'neutral'
+
+df['textblob_sentiment'] = df['cleaned_text'].apply(textblob_sentiment_analysis)
+
+# 5. Sentiment Analysis using VADER
+analyzer = SentimentIntensityAnalyzer()
+
+def vader_sentiment_analysis(text):
+    sentiment_score = analyzer.polarity_scores(text)
+    if sentiment_score['compound'] >= 0.05:
+        return 'positive'
+    elif sentiment_score['compound'] <= -0.05:
+        return 'negative'
+    else:
+        return 'neutral'
+
+df['vader_sentiment'] = df['cleaned_text'].apply(vader_sentiment_analysis)
+
+# 6. Train a Custom Model using Tfidf + Logistic Regression
+X = df['cleaned_text']
+y = df['sentiment']
+
+# Split into training and testing data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Convert text to features using TfidfVectorizer
+vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+
+# Train Logistic Regression model
+model
