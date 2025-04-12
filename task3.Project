@@ -1,0 +1,72 @@
+import dash
+from dash import dcc, html
+import plotly.express as px
+import pandas as pd
+from dash.dependencies import Input, Output
+
+# Sample dataset - Replace this with your own dataset
+df = pd.read_csv('data/sample_data.csv')
+
+# Initialize the Dash app
+app = dash.Dash(__name__)
+
+# App layout
+app.layout = html.Div([
+    # Title of the Dashboard
+    html.H1("Interactive Dashboard Example", style={'textAlign': 'center'}),
+    
+    # Dropdown menu for selecting columns to visualize
+    html.Div([
+        html.Label("Select X and Y variables to visualize"),
+        dcc.Dropdown(
+            id='x-axis-dropdown',
+            options=[{'label': col, 'value': col} for col in df.columns if df[col].dtype != 'object'],
+            value=df.columns[0],  # Default value
+            style={'width': '48%', 'display': 'inline-block'}
+        ),
+        dcc.Dropdown(
+            id='y-axis-dropdown',
+            options=[{'label': col, 'value': col} for col in df.columns if df[col].dtype != 'object'],
+            value=df.columns[1],  # Default value
+            style={'width': '48%', 'display': 'inline-block'}
+        ),
+    ], style={'padding': '20px'}),
+
+    # Graph to display the selected columns
+    dcc.Graph(id='scatter-plot', style={'height': '70vh'}),
+
+    # Show dataset table as well (Optional)
+    html.Div([
+        html.H3("Data Table"),
+        html.Div(id='table-container')
+    ], style={'padding': '20px'}),
+])
+
+# Callback to update the graph
+@app.callback(
+    Output('scatter-plot', 'figure'),
+    Output('table-container', 'children'),
+    [Input('x-axis-dropdown', 'value'),
+     Input('y-axis-dropdown', 'value')]
+)
+def update_graph(x_col, y_col):
+    # Create the scatter plot using the selected columns
+    fig = px.scatter(df, x=x_col, y=y_col, title=f'Scatter Plot: {x_col} vs {y_col}')
+
+    # Display the table with selected columns
+    table = html.Div([
+        html.Table([
+            html.Thead(
+                html.Tr([html.Th(col) for col in [x_col, y_col]])
+            ),
+            html.Tbody([
+                html.Tr([html.Td(df.iloc[i][x_col]), html.Td(df.iloc[i][y_col])]) for i in range(min(len(df), 10))
+            ])
+        ])
+    ])
+    
+    return fig, table
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
