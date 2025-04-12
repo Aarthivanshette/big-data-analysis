@@ -1,0 +1,78 @@
+import dash
+from dash import dcc, html
+import plotly.express as px
+import pandas as pd
+from dash.dependencies import Input, Output
+import numpy as np
+
+# Sample dataset - Replace this with your own dataset
+df = pd.read_csv('data/sample_data.csv')
+
+# Initialize the Dash app
+app = dash.Dash(__name__)
+
+# App layout
+app.layout = html.Div([
+    html.H1("Interactive Data Dashboard with Actionable Insights", style={'textAlign': 'center'}),
+
+    # Dropdown menu for selecting X and Y variables to visualize
+    html.Div([
+        html.Label("Select X and Y variables to visualize"),
+        dcc.Dropdown(
+            id='x-axis-dropdown',
+            options=[{'label': col, 'value': col} for col in df.columns if df[col].dtype != 'object'],
+            value=df.columns[0],  # Default value
+            style={'width': '48%', 'display': 'inline-block'}
+        ),
+        dcc.Dropdown(
+            id='y-axis-dropdown',
+            options=[{'label': col, 'value': col} for col in df.columns if df[col].dtype != 'object'],
+            value=df.columns[1],  # Default value
+            style={'width': '48%', 'display': 'inline-block'}
+        ),
+    ], style={'padding': '20px'}),
+
+    # Range sliders for filtering data
+    html.Div([
+        html.Label("Filter by Range:"),
+        dcc.RangeSlider(
+            id='range-slider',
+            min=df[df.columns[0]].min(),
+            max=df[df.columns[0]].max(),
+            step=(df[df.columns[0]].max() - df[df.columns[0]].min()) / 100,
+            marks={i: str(i) for i in range(int(df[df.columns[0]].min()), int(df[df.columns[0]].max())+1, 5)},
+            value=[df[df.columns[0]].min(), df[df.columns[0]].max()]
+        ),
+    ], style={'padding': '20px'}),
+
+    # Graph to display the selected columns
+    dcc.Graph(id='scatter-plot', style={'height': '70vh'}),
+
+    # Insights Section
+    html.Div([
+        html.H3("Key Insights", style={'textAlign': 'center'}),
+        html.Div(id='insights-section', style={'padding': '20px'})
+    ]),
+
+    # Button to download filtered data as CSV
+    html.Div([
+        html.Button("Download Filtered Data", id="download-button", n_clicks=0),
+        dcc.Download(id="download-data")
+    ], style={'padding': '20px'}),
+])
+
+# Callback to update the graph and insights
+@app.callback(
+    [Output('scatter-plot', 'figure'),
+     Output('insights-section', 'children')],
+    [Input('x-axis-dropdown', 'value'),
+     Input('y-axis-dropdown', 'value'),
+     Input('range-slider', 'value')]
+)
+def update_graph_and_insights(x_col, y_col, selected_range):
+    # Filter the data based on the selected range
+    filtered_df = df[(df[x_col] >= selected_range[0]) & (df[x_col] <= selected_range[1])]
+
+    # Create the scatter plot using the selected columns
+    fig = px.scatter(filtered_df, x=x_col, y=y_col, title=f'Scatter Plot: {x_col
+
