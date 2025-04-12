@@ -1,0 +1,74 @@
+# Importing required libraries
+import pandas as pd
+from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, accuracy_score
+
+# Sample data: Replace this with your own dataset (tweets, reviews, etc.)
+data = {
+    'text': [
+        "I love this product, it's amazing!",
+        "Worst purchase I have ever made.",
+        "The product is okay, nothing special.",
+        "Great quality, I will buy again.",
+        "Terrible, would not recommend it to anyone.",
+        "Absolutely fantastic! Exceeded my expectations."
+    ],
+    'sentiment': ['positive', 'negative', 'neutral', 'positive', 'negative', 'positive']  # Manually labeled sentiments
+}
+
+# Convert to DataFrame
+df = pd.DataFrame(data)
+
+# 1. Sentiment Analysis with TextBlob
+def textblob_sentiment_analysis(text):
+    blob = TextBlob(text)
+    return 'positive' if blob.sentiment.polarity > 0 else 'negative' if blob.sentiment.polarity < 0 else 'neutral'
+
+df['textblob_sentiment'] = df['text'].apply(textblob_sentiment_analysis)
+
+# 2. Sentiment Analysis with VADER
+analyzer = SentimentIntensityAnalyzer()
+
+def vader_sentiment_analysis(text):
+    sentiment_score = analyzer.polarity_scores(text)
+    if sentiment_score['compound'] >= 0.05:
+        return 'positive'
+    elif sentiment_score['compound'] <= -0.05:
+        return 'negative'
+    else:
+        return 'neutral'
+
+df['vader_sentiment'] = df['text'].apply(vader_sentiment_analysis)
+
+# 3. Train a Custom Model using Tfidf + Logistic Regression
+X = df['text']
+y = df['sentiment']
+
+# Split into training and testing data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Convert text to features using TfidfVectorizer
+vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+
+# Train Logistic Regression model
+model = LogisticRegression()
+model.fit(X_train_tfidf, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test_tfidf)
+
+# Evaluate the model
+print(f"Accuracy Score: {accuracy_score(y_test, y_pred)}")
+print(f"Classification Report:\n{classification_report(y_test, y_pred)}")
+
+# Adding model predictions to the DataFrame (for custom model)
+df['logistic_regression_sentiment'] = model.predict(vectorizer.transform(df['text']))
+
+# Show the results
+print(df)
